@@ -111,8 +111,8 @@ MCP_CONFIGURATION = {
                 "keyword": "knowledge_graph",
                 "graphql_modules": {
                     "knowledge_graph_engine": {
-                        "class_name": "AIKGEngine",
-                        "endpoint": "https://api.example.com/{endpoint_id}/ai_kg_engine_graphql",
+                        "class_name": "KnowledgeGraphEngine",
+                        "endpoint": "https://api.example.com/{endpoint_id}/knowledge_graph_graphql",
                         "x_api_key": "<api_key>",
                     },
                 },
@@ -238,7 +238,7 @@ class MCPKGInquirer:
             variables = {k: v for k, v in variables.items() if v is not None}
 
             result = self._execute_graphql_query(
-                "ai_kg_engine_graphql",
+                "knowledge_graph_graphql",
                 "search",
                 "Query",
                 variables,
@@ -266,7 +266,7 @@ class MCPKGInquirer:
             variables = {k: v for k, v in variables.items() if v is not None}
 
             result = self._execute_graphql_query(
-                "ai_kg_engine_graphql",
+                "knowledge_graph_graphql",
                 "rag",
                 "Query",
                 variables,
