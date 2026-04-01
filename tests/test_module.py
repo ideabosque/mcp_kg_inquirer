@@ -1,8 +1,5 @@
 """Tests for GraphQL module configuration."""
 
-import sys
-import types
-
 from mcp_kg_inquirer.graphql_module import GraphQLModule
 
 
@@ -32,13 +29,10 @@ class TestGraphQLModule:
             calls.append((module_name, class_name))
             return {"module": module_name, "class": class_name}
 
-        fake_graphql_module = types.ModuleType("silvaengine_utility.graphql")
-        fake_graphql_module.Graphql = type(
-            "Graphql",
-            (),
-            {"get_graphql_schema": staticmethod(fake_get_graphql_schema)},
+        monkeypatch.setattr(
+            "mcp_kg_inquirer.graphql_module.Graphql.get_graphql_schema",
+            staticmethod(fake_get_graphql_schema),
         )
-        monkeypatch.setitem(sys.modules, "silvaengine_utility.graphql", fake_graphql_module)
 
         module = GraphQLModule(
             endpoint_id="endpoint-1",

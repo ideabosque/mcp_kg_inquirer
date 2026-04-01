@@ -5,6 +5,8 @@ from __future__ import annotations
 
 __author__ = "bibow"
 
+from silvaengine_utility.graphql import Graphql
+
 
 class GraphQLModule:
     """Encapsulates GraphQL module configuration and schema management."""
@@ -68,8 +70,6 @@ class GraphQLModule:
     def refresh_schema(self):
         """Load or reload the GraphQL schema from the configured module and class."""
         if self._module_name and self._class_name:
-            from silvaengine_utility.graphql import Graphql
-
             self._schema = Graphql.get_graphql_schema(
                 module_name=self._module_name,
                 class_name=self._class_name,

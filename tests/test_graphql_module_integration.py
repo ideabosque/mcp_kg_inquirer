@@ -12,24 +12,23 @@ class TestGraphQLModuleIntegration:
         """Test client builds module config from settings and caches it."""
         client = MCPKGInquirer(
             logging.getLogger("tests.graphql_module_integration"),
-            endpoint_id="endpoint-1",
-            part_id="part-1",
-            api_key="secret",
             graphql_modules={
-                "ai_kg_engine": {
-                    "class_name": "Query",
-                    "endpoint": "https://example.com/{endpoint_id}/graphql",
+                "knowledge_graph_engine": {
+                    "class_name": "AIKGEngine",
+                    "endpoint": "https://example.com/{endpoint_id}/ai_kg_engine_graphql",
                     "x_api_key": "module-secret",
                 }
             },
         )
+        client.endpoint_id = "endpoint-1"
+        client.part_id = "part-1"
 
-        module = client.get_graphql_module("ai_kg_engine")
-        same_module = client.get_graphql_module("ai_kg_engine")
+        module = client.get_graphql_module("knowledge_graph_engine")
+        same_module = client.get_graphql_module("knowledge_graph_engine")
 
         assert module is same_module
         assert module.endpoint_id == "endpoint-1"
-        assert module.module_name == "ai_kg_engine"
-        assert module.class_name == "Query"
-        assert module.endpoint == "https://example.com/endpoint-1/graphql"
+        assert module.module_name == "knowledge_graph_engine"
+        assert module.class_name == "AIKGEngine"
+        assert module.endpoint == "https://example.com/endpoint-1/ai_kg_engine_graphql"
         assert module.x_api_key == "module-secret"
