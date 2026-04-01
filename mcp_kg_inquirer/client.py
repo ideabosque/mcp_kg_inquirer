@@ -194,7 +194,7 @@ class CircuitBreaker:
 
 class MCPKGInquirer:
     """MCP client for Knowledge Graph Engine integration."""
-    
+
     def __init__(
         self,
         logger: logging.Logger,
@@ -206,6 +206,9 @@ class MCPKGInquirer:
         self._endpoint_id = None
         self._part_id = None
         self._graphql_modules = {}
+
+        print(">>>>>" * 60)
+        print(setting)
 
         self._endpoint_id = setting.get("endpoint_id")
         self._part_id = setting.get("part_id")
@@ -220,7 +223,7 @@ class MCPKGInquirer:
             max_retries=setting.get("max_retries", 3),
             retry_delay=setting.get("retry_delay", 1.0),
         )
-        
+
         self.circuit_breaker = CircuitBreaker(
             failure_threshold=setting.get("circuit_breaker_threshold", 5),
             recovery_timeout=setting.get("circuit_breaker_timeout", 60.0),
@@ -260,7 +263,7 @@ class MCPKGInquirer:
             )
 
         return self._graphql_modules.get(module_name)
-    
+
     @classmethod
     def from_env(cls, logger: logging.Logger) -> "MCPKGInquirer":
         """Create a client from environment variables."""
@@ -339,21 +342,21 @@ class MCPKGInquirer:
 
     async def _post_graphql(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         return await asyncio.to_thread(self._post_graphql_sync, payload)
-    
+
     async def _execute_graphql(
         self,
         query: str,
         variables: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Execute a GraphQL query.
-        
+
         Args:
             query: The GraphQL query string.
             variables: The query variables.
-        
+
         Returns:
             The response data.
-        
+
         Raises:
             ConnectionError: If connection fails.
             AuthenticationError: If authentication fails.
@@ -363,14 +366,14 @@ class MCPKGInquirer:
         if self.circuit_breaker.is_open():
             raise ConnectionError(
                 "Circuit breaker is open - too many recent failures",
-                {"state": self.circuit_breaker.state}
+                {"state": self.circuit_breaker.state},
             )
-        
+
         payload = {
             "query": query,
             "variables": variables,
         }
-        
+
         last_error: Exception | None = None
         for attempt in range(self.config.max_retries):
             try:
@@ -393,7 +396,7 @@ class MCPKGInquirer:
         if last_error is not None:
             raise last_error
         raise MCPKGInquirerError("Unexpected error", {"error": "Unknown request failure"})
-    
+
     async def search(
         self,
         query_text: str,
@@ -407,7 +410,7 @@ class MCPKGInquirer:
         search_mode: Optional[str] = None,
     ) -> SearchResponse:
         """Search the knowledge graph.
-        
+
         Args:
             query_text: The search query text.
             data_type: Optional data type filter.
@@ -418,10 +421,10 @@ class MCPKGInquirer:
             limit: Number of results per page.
             prompt: Optional custom prompt for text2cypher mode.
             search_mode: Explicit search mode (overrides flags).
-        
+
         Returns:
             A SearchResponse with results.
-        
+
         Raises:
             ValidationError: If parameters are invalid.
             SearchError: If the search fails.
@@ -438,14 +441,14 @@ class MCPKGInquirer:
             prompt=prompt,
             search_mode=search_mode,
         )
-        
+
         response = await self._execute_graphql(
             query=request["query"],
             variables=request["variables"],
         )
-        
+
         return parse_search_response(response)
-    
+
     async def search_vector(
         self,
         query_text: str,
@@ -455,14 +458,14 @@ class MCPKGInquirer:
         limit: int = 10,
     ) -> SearchResponse:
         """Search using vector similarity.
-        
+
         Args:
             query_text: The search query text.
             data_type: Optional data type filter.
             filters: Optional filters to apply.
             page: Page number for pagination.
             limit: Number of results per page.
-        
+
         Returns:
             A SearchResponse with results.
         """
@@ -474,7 +477,7 @@ class MCPKGInquirer:
             page=page,
             limit=limit,
         )
-    
+
     async def search_hybrid(
         self,
         query_text: str,
@@ -484,14 +487,14 @@ class MCPKGInquirer:
         limit: int = 10,
     ) -> SearchResponse:
         """Search using hybrid (vector + fulltext) approach.
-        
+
         Args:
             query_text: The search query text.
             data_type: Optional data type filter.
             filters: Optional filters to apply.
             page: Page number for pagination.
             limit: Number of results per page.
-        
+
         Returns:
             A SearchResponse with results.
         """
@@ -503,7 +506,7 @@ class MCPKGInquirer:
             page=page,
             limit=limit,
         )
-    
+
     async def rag(
         self,
         query_text: str,
@@ -511,15 +514,15 @@ class MCPKGInquirer:
         use_case: Optional[str] = None,
     ) -> RAGResponse:
         """Perform a RAG query.
-        
+
         Args:
             query_text: The question to answer.
             prompt: Optional custom system prompt.
             use_case: Use case for default prompt (default, summary, explanation).
-        
+
         Returns:
             A RAGResponse with answer and context.
-        
+
         Raises:
             ValidationError: If parameters are invalid.
             RAGError: If the RAG query fails.
@@ -528,19 +531,19 @@ class MCPKGInquirer:
         # Use default prompt if use_case is specified and no custom prompt
         if prompt is None and use_case:
             prompt = get_prompt_for_use_case(use_case)
-        
+
         request = build_rag_request(
             query_text=query_text,
             prompt=prompt,
         )
-        
+
         response = await self._execute_graphql(
             query=request["query"],
             variables=request["variables"],
         )
-        
+
         return parse_rag_response(response)
-    
+
     async def rag_with_context(
         self,
         query_text: str,
@@ -548,15 +551,15 @@ class MCPKGInquirer:
         top_k: int = 5,
     ) -> RAGResponse:
         """Perform a RAG query with explicit context retrieval.
-        
+
         This method is an alias for rag() but makes the top_k parameter
         explicit for when you want to control context retrieval size.
-        
+
         Args:
             query_text: The question to answer.
             prompt: Optional custom system prompt.
             top_k: Number of context documents to retrieve.
-        
+
         Returns:
             A RAGResponse with answer and context.
         """
@@ -564,7 +567,7 @@ class MCPKGInquirer:
             query_text=query_text,
             prompt=prompt,
         )
-    
+
     async def batch_search(
         self,
         queries: List[str],
@@ -576,7 +579,7 @@ class MCPKGInquirer:
         limit: int = 10,
     ) -> List[SearchResponse]:
         """Execute multiple search queries in parallel.
-        
+
         Args:
             queries: List of search query texts.
             data_type: Optional data type filter.
@@ -585,12 +588,12 @@ class MCPKGInquirer:
             relevance_search: Whether to use relevance search.
             page: Page number for pagination.
             limit: Number of results per page.
-        
+
         Returns:
             List of SearchResponse objects, one for each query.
         """
         import asyncio
-        
+
         tasks = [
             self.search(
                 query_text=query,
@@ -603,9 +606,9 @@ class MCPKGInquirer:
             )
             for query in queries
         ]
-        
+
         return await asyncio.gather(*tasks)
-    
+
     async def batch_rag(
         self,
         queries: List[str],
@@ -613,30 +616,27 @@ class MCPKGInquirer:
         use_case: Optional[str] = None,
     ) -> List[RAGResponse]:
         """Execute multiple RAG queries in parallel.
-        
+
         Args:
             queries: List of questions to answer.
             prompt: Optional custom system prompt.
             use_case: Use case for default prompt.
-        
+
         Returns:
             List of RAGResponse objects, one for each query.
         """
         import asyncio
-        
-        tasks = [
-            self.rag(query_text=query, prompt=prompt, use_case=use_case)
-            for query in queries
-        ]
-        
+
+        tasks = [self.rag(query_text=query, prompt=prompt, use_case=use_case) for query in queries]
+
         return await asyncio.gather(*tasks)
-    
+
     async def health_check(self) -> Dict[str, Any]:
         """Check the health of the connection.
-        
+
         Returns:
             Dictionary with health status information.
-        
+
         Raises:
             ConnectionError: If health check fails.
         """
@@ -665,15 +665,15 @@ class MCPKGInquirer:
                 "error": str(e),
                 "circuit_breaker": self.circuit_breaker.get_state(),
             }
-    
+
     async def close(self) -> None:
         """Close the client."""
         self.logger.info("MCPKGInquirer client closed")
-    
+
     async def __aenter__(self) -> "MCPKGInquirer":
         """Async context manager entry."""
         return self
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         """Async context manager exit."""
         await self.close()
