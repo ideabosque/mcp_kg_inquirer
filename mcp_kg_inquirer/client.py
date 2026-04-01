@@ -21,7 +21,7 @@ MCP_CONFIGURATION = {
     "tools": [
         {
             "name": "search",
-            "description": "Searches for information in the knowledge graph. Accepts a query text and optional filters to search across various data types. Returns relevant search results with pagination.",
+            "description": "Searches for information in the knowledge graph using multiple search modes: vector (semantic similarity), text2cypher (LLM-generated Cypher), vector_cypher (vector + custom traversal), or hybrid (vector + fulltext).",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -29,42 +29,52 @@ MCP_CONFIGURATION = {
                         "type": "string",
                         "description": "Search query text",
                     },
-                    "data_type": {
+                    "search_mode": {
                         "type": "string",
-                        "description": "Type of data to search (e.g., product, company, document)",
+                        "description": "Search mode: vector (semantic similarity), text2cypher (LLM generates Cypher), vector_cypher (vector + custom Cypher traversal), hybrid (vector + fulltext combined)",
+                        "enum": ["vector", "text2cypher", "vector_cypher", "hybrid"],
+                        "default": "text2cypher",
+                    },
+                    "search_type": {
+                        "type": "string",
+                        "description": "Search type for categorizing search operations",
+                    },
+                    "index_name": {
+                        "type": "string",
+                        "description": "Vector index name",
+                        "default": "vector",
+                    },
+                    "retrieval_query": {
+                        "type": "string",
+                        "description": "Custom Cypher retrieval query (used with vector_cypher mode)",
                     },
                     "filters": {
                         "type": "object",
                         "description": "Additional filters for the search",
                     },
-                    "similarity_search": {
-                        "type": "boolean",
-                        "description": "Enable similarity search",
-                    },
-                    "relevance_search": {
-                        "type": "boolean",
-                        "description": "Enable relevance search",
+                    "top_k": {
+                        "type": "integer",
+                        "description": "Number of top results to retrieve",
+                        "default": 10,
                     },
                     "page": {
                         "type": "integer",
                         "description": "Page number for pagination",
+                        "default": 1,
                     },
                     "limit": {
                         "type": "integer",
                         "description": "Number of results per page",
-                    },
-                    "prompt": {
-                        "type": "string",
-                        "description": "Additional prompt for search context",
+                        "default": 10,
                     },
                 },
-                "required": [],
+                "required": ["query_text"],
             },
             "annotations": None,
         },
         {
             "name": "rag",
-            "description": "Performs Retrieval-Augmented Generation (RAG) to answer questions based on the knowledge graph. Accepts a query text and optional prompt to generate contextually relevant answers using information retrieved from the knowledge graph.",
+            "description": "Performs Retrieval-Augmented Generation (RAG) to answer questions based on the knowledge graph. Supports vector (semantic search) and hybrid (vector + fulltext) retrieval modes.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -72,12 +82,28 @@ MCP_CONFIGURATION = {
                         "type": "string",
                         "description": "Query text for RAG",
                     },
+                    "search_mode": {
+                        "type": "string",
+                        "description": "Retriever mode: vector (semantic search) or hybrid (vector + fulltext)",
+                        "enum": ["vector", "hybrid"],
+                        "default": "vector",
+                    },
+                    "index_name": {
+                        "type": "string",
+                        "description": "Vector index name",
+                        "default": "vector",
+                    },
+                    "top_k": {
+                        "type": "integer",
+                        "description": "Number of results to retrieve for context",
+                        "default": 5,
+                    },
                     "prompt": {
                         "type": "string",
-                        "description": "Additional prompt for RAG context",
+                        "description": "Optional custom prompt template for RAG generation",
                     },
                 },
-                "required": [],
+                "required": ["query_text"],
             },
             "annotations": None,
         },
@@ -225,13 +251,14 @@ class MCPKGInquirer:
 
             variables = {
                 "queryText": arguments.get("query_text"),
-                "dataType": arguments.get("data_type"),
+                "searchMode": arguments.get("search_mode", "text2cypher"),
+                "searchType": arguments.get("search_type"),
+                "indexName": arguments.get("index_name", "vector"),
+                "retrievalQuery": arguments.get("retrieval_query"),
                 "filters": arguments.get("filters"),
-                "similaritySearch": arguments.get("similarity_search"),
-                "relevanceSearch": arguments.get("relevance_search"),
-                "page": arguments.get("page"),
-                "limit": arguments.get("limit"),
-                "prompt": arguments.get("prompt"),
+                "topK": arguments.get("top_k", 10),
+                "page": arguments.get("page", 1),
+                "limit": arguments.get("limit", 10),
             }
 
             # Remove None values to avoid GraphQL validation errors
@@ -259,6 +286,9 @@ class MCPKGInquirer:
 
             variables = {
                 "queryText": arguments.get("query_text"),
+                "searchMode": arguments.get("search_mode", "vector"),
+                "indexName": arguments.get("index_name", "vector"),
+                "topK": arguments.get("top_k", 5),
                 "prompt": arguments.get("prompt"),
             }
 
